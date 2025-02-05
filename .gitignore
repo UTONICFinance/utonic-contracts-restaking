@@ -1,0 +1,16 @@
+node_modules
+.env
+
+#Hardhat files
+build/*.json
+build/*.cell
+.DS_Store
+yarn.lock
+package-lock.json
+
+*.swp
+*.swc
+*.swo
+
+#config
+*.ini
