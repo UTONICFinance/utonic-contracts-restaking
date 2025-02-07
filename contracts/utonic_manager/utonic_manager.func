@@ -4,8 +4,11 @@
 #include "../stake_op.func";
 #include "../stake_utils.func";
 
+#include "../strategy/strategy_params.func";
+
 
 #include "operator_register/operator_register_utils.func";
+#include "operator_register/operator_register_params.func";
 
 #include "utonic_manager_params.func";
 #include "utonic_manager_op.func";
@@ -62,6 +65,7 @@ global cell operator_register_code;
     cell in_extra_payload = in_msg_body~load_ref();
     cell out_extra_payload = begin_cell()
         ;; store strategy and response address for query_ack
+        .store_uint(0, 1) ;; not for claim
         .store_slice(sender_address)
         .store_slice(response_address)
         .store_ref(in_extra_payload)
@@ -86,6 +90,103 @@ global cell operator_register_code;
         .store_ref(state_init)
         .store_ref(query_msg_body);
     send_raw_message(query_msg.end_cell(), 0);
+}
+
+() query_for_claim(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
+   
+    int ton_balance_before_msg = my_ton_balance - msg_value;
+    ;; storage_fee is usually 0 when contract has enough balance
+    int storage_fee = UTONIC_MANAGER::MIN_TON_STORAGE - min(ton_balance_before_msg, UTONIC_MANAGER::MIN_TON_STORAGE);
+
+    throw_unless(
+        STAKE::ERR::INSUFFICIENT_VALUE, 
+        msg_value >= storage_fee
+            + claim_query_operator_register_cycle_fee(fwd_fee)
+            + fwd_fee
+            + claim_operator_share_route_fee(fwd_fee)
+    );
+
+    load_global_data();
+    throw_unless(
+        STAKE::ERR::UNAUTHORIZED, 
+        equal_slices(
+            admin_address, 
+            sender_address
+        )
+    );
+
+    slice operator_address = in_msg_body~load_msg_addr();
+    slice strategy_address = in_msg_body~load_msg_addr();
+    slice recipient_address = in_msg_body~load_msg_addr();
+
+    cell state_init = calculate_operator_register_state_init(
+        operator_address,
+        my_address(),
+        operator_register_code
+    );
+    slice operator_register_address = calculate_operator_register_address_by_state_init(state_init);   
+
+    cell out_extra_payload = begin_cell()
+        .store_uint(1, 1) ;; for claim
+        .store_slice(strategy_address)
+        .store_slice(recipient_address)
+        .end_cell();
+
+    int remain_msg_value = msg_value
+        - storage_fee
+        - UTONIC_MANAGER::QUERY_OPERATOR_FEE;
+
+    ;; then send query msg to operator_register
+    var query_msg_body = begin_cell()
+        .store_uint(STAKE::OP::QUERY, 32)
+        .store_uint(query_id, 64)
+        .store_ref(out_extra_payload)
+        .end_cell();
+    
+    var query_msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(operator_register_address)
+        .store_coins(remain_msg_value)
+        .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
+        .store_ref(state_init)
+        .store_ref(query_msg_body);
+    send_raw_message(query_msg.end_cell(), 0);
+}
+
+() send_ack_msg(int query_id, int operator_status, slice strategy_address, slice operator_address, slice response_address, cell extra_payload, int msg_value) impure {
+    var ack_msg_body = begin_cell()
+        .store_uint(STAKE::OP::QUERY_ACK, 32)
+        .store_uint(query_id, 64)
+        .store_uint(operator_status, 2)
+        .store_slice(operator_address)
+        .store_slice(response_address)
+        .store_ref(extra_payload)
+        .end_cell();
+    
+    var ack_msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(strategy_address)
+        .store_coins(msg_value)
+        .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_ref(ack_msg_body);
+    send_raw_message(ack_msg.end_cell(), 0);
+}
+
+() send_claim_operator_share_msg(int query_id, slice strategy_address, slice operator_address, slice recipient_address, int msg_value) impure {
+    var claim_msg_body = begin_cell()
+        .store_uint(STAKE::OP::CLAIM_OPT_SHARE, 32)
+        .store_uint(query_id, 64)
+        .store_slice(operator_address)
+        .store_slice(recipient_address)
+        .end_cell();
+    
+    var claim_msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(strategy_address)
+        .store_coins(msg_value)
+        .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .store_ref(claim_msg_body);
+    send_raw_message(claim_msg.end_cell(), 0);
 }
 
 () query_ack(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
@@ -121,35 +222,24 @@ global cell operator_register_code;
     );
 
     slice in_extra_payload = in_msg_body~load_ref().begin_parse();
+    int is_claim = in_extra_payload~load_uint(1);
     slice strategy_address = in_extra_payload~load_msg_addr();
-    slice response_address = in_extra_payload~load_msg_addr();
-    cell extra_payload = in_extra_payload~load_ref();
 
     int remain_msg_value = msg_value
         - storage_fee
-        - UTONIC_MANAGER::QUERY_OPERATOR_FEE
+        - UTONIC_MANAGER::QUERY_OPERATOR_ACK_FEE
         - fwd_fee;
 
-    ;; then send query msg to operator_register
-    var query_msg_body = begin_cell()
-        .store_uint(STAKE::OP::QUERY_ACK, 32)
-        .store_uint(query_id, 64)
-        .store_uint(operator_status, 2)
-        .store_slice(operator_address)
-        .store_slice(response_address)
-        .store_ref(extra_payload)
-        .end_cell();
-    
-    int remain_msg_value = msg_value
-        - storage_fee
-        - UTONIC_MANAGER::QUERY_OPERATOR_ACK_FEE;
-    var query_msg = begin_cell()
-        .store_uint(0x18, 6)
-        .store_slice(strategy_address)
-        .store_coins(remain_msg_value)
-        .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-        .store_ref(query_msg_body);
-    send_raw_message(query_msg.end_cell(), 0);
+    if (is_claim == 0) {
+        slice response_address = in_extra_payload~load_msg_addr();
+        cell extra_payload = in_extra_payload~load_ref();
+        send_ack_msg(query_id,operator_status,strategy_address,operator_address,response_address,extra_payload,remain_msg_value);
+    } else {
+        if (operator_status == OPERATOR_REGISTER::STATUS_BANED) {
+            slice recipient_address = in_extra_payload~load_msg_addr();
+            send_claim_operator_share_msg(query_id,strategy_address,operator_address,recipient_address,remain_msg_value);
+        }
+    }
 }
 
 () switch_operator_status(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
@@ -186,7 +276,7 @@ global cell operator_register_code;
     slice response_address = in_msg_body~load_msg_addr();
 
     var msg_body = begin_cell()
-        .store_uint(UTONIC_MANAGER::OP::SWITCH_OPERATOR_STATUS, 32)
+        .store_uint(UTONIC_MANAGER::OP::ADMIN_SWITCH_OPERATOR_STATUS, 32)
         .store_uint(query_id, 64)
         .store_uint(is_baned, 1)
         .store_slice(response_address)
@@ -293,8 +383,13 @@ global cell operator_register_code;
     }
 
     ;; admin operate
-    if (op == UTONIC_MANAGER::OP::SWITCH_OPERATOR_STATUS) {
+    if (op == UTONIC_MANAGER::OP::ADMIN_SWITCH_OPERATOR_STATUS) {
         switch_operator_status(query_id, in_msg_body, sender_address, balance, fwd_fee, msg_value);
+        return ();
+    }
+
+    if (op == UTONIC_MANAGER::OP::ADMIN_CLAIM_OPT_SHARE) {
+        query_for_claim(query_id,in_msg_body,sender_address,balance,fwd_fee,msg_value);
         return ();
     }
 

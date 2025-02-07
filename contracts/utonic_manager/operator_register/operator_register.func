@@ -171,7 +171,7 @@ global slice utonic_manager_address;
         return ();
     }
 
-    if (op == UTONIC_MANAGER::OP::SWITCH_OPERATOR_STATUS) { 
+    if (op == UTONIC_MANAGER::OP::ADMIN_SWITCH_OPERATOR_STATUS) { 
         switch_operator_status(query_id, in_msg_body,sender_address,my_balance,fwd_fee,msg_value);
         return ();
     }

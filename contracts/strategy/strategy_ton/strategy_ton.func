@@ -548,6 +548,115 @@ global cell withdraw_code;
     }
 }
 
+() claim_operator_share(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
+    int ton_balance_before_msg = my_ton_balance - msg_value;
+    ;; storage_fee is usually 0 when contract has enough balance
+    int storage_fee = STRATEGY_TON::MIN_TON_STORAGE - min(ton_balance_before_msg, STRATEGY_TON::MIN_TON_STORAGE);
+    ;; check msg_value for update operator_strategy_share
+    throw_unless(
+        STAKE::ERR::INSUFFICIENT_VALUE, 
+        msg_value > storage_fee
+            + claim_operator_share_route_fee(fwd_fee)
+    );
+    load_global_data();
+    throw_unless(
+        STAKE::ERR::WRONG_CALLER, 
+        equal_slices(
+            utonic_manager_address, 
+            sender_address
+        )
+    );
+    slice operator_address = in_msg_body~load_msg_addr();
+    slice recipient_address = in_msg_body~load_msg_addr();
+    int remain_msg_value = msg_value
+        - storage_fee
+        - STRATEGY::CLAIM_OPT_SHARE_FEE 
+        - fwd_fee;
+    
+    ;; send to operator_strategy_share
+    ;; to update operator's share
+    cell state_init = calculate_operator_strategy_share_state_init(
+        operator_address, 
+        my_address(), 
+        operator_strategy_share_code
+    );
+    slice operator_strategy_share = calculate_operator_strategy_share_address_by_state_init(state_init);
+    var claim_msg_body = begin_cell()
+        .store_uint(STAKE::OP::CLAIM_OPT_SHARE, 32)
+        .store_uint(query_id, 64)
+        .store_slice(recipient_address)
+        .end_cell();
+    var claim_msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(operator_strategy_share)
+        .store_coins(remain_msg_value)
+        .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
+        .store_ref(state_init)
+        .store_ref(claim_msg_body);
+    send_raw_message(claim_msg.end_cell(), 1);
+}
+
+() claim_operator_share_ack(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
+    int ton_balance_before_msg = my_ton_balance - msg_value;
+    ;; storage_fee is usually 0 when contract has enough balance
+    int storage_fee = STRATEGY_TON::MIN_TON_STORAGE - min(ton_balance_before_msg, STRATEGY_TON::MIN_TON_STORAGE);
+    ;; check msg_value for update operator_strategy_share
+    throw_unless(
+        STAKE::ERR::INSUFFICIENT_VALUE, 
+        msg_value > storage_fee
+            + STRATEGY::CLAIM_OPT_SHARE_ACK_FEE
+            ;; deposit
+            + fwd_fee
+            + user_strategy_info_deposit_cycle_fee(fwd_fee)
+            ;; no need to write following, usually claim-recipient is undelegate
+            + fwd_fee
+            + deposit_ack_route_fee(fwd_fee)
+    );
+    load_global_data();
+    
+    int shares = in_msg_body~load_coins();
+    slice operator_address = in_msg_body~load_msg_addr();
+    throw_unless(
+        STAKE::ERR::WRONG_CALLER, 
+        equal_slices(
+            calculate_operator_strategy_share_address(
+                operator_address,
+                my_address(),
+                operator_strategy_share_code
+            ), 
+            sender_address
+        )
+    );
+    slice recipient_address = in_msg_body~load_msg_addr();
+    
+    int remain_msg_value = msg_value
+        - storage_fee
+        - STRATEGY::CLAIM_OPT_SHARE_ACK_FEE 
+        - fwd_fee;
+    ;; then send deposit msg to user_strategy_info
+    var deposit_msg_body = begin_cell()
+        .store_uint(STAKE::OP::DEPOSIT, 32)
+        .store_uint(query_id, 64)
+        .store_coins(shares)
+        .store_slice(recipient_address)
+        .end_cell();
+    
+    cell state_init = calculate_user_strategy_info_state_init(
+        recipient_address,
+        my_address(),
+        user_strategy_info_code
+    );
+    slice user_strategy_info_address = calculate_user_strategy_info_address_by_state_init(state_init);
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(user_strategy_info_address)
+        .store_coins(remain_msg_value)
+        .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
+        .store_ref(state_init)
+        .store_ref(deposit_msg_body);
+    send_raw_message(msg.end_cell(), 1);
+}
+
 () update_operator_ack(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
    
     int ton_balance_before_msg = my_ton_balance - msg_value;
@@ -739,6 +848,63 @@ global cell withdraw_code;
     send_raw_message(msg.end_cell(), 1);
 }
 
+;; only for broken claim
+() admin_add_user_share(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
+    
+    int ton_balance_before_msg = my_ton_balance - msg_value;
+    int storage_fee = STRATEGY_TON::MIN_TON_STORAGE - min(ton_balance_before_msg, STRATEGY_TON::MIN_TON_STORAGE);
+
+    throw_unless(
+        STAKE::ERR::INSUFFICIENT_VALUE, 
+        msg_value >= storage_fee
+            + STRATEGY::ADMIN_ADD_USER_SHARE_FEE 
+            + fwd_fee
+            + user_strategy_info_deposit_cycle_fee(fwd_fee)
+            + fwd_fee
+            + deposit_ack_route_fee(fwd_fee)
+    );
+    
+    load_global_data();
+    ;; check authorization
+    throw_unless(
+        STAKE::ERR::UNAUTHORIZED, 
+        equal_slices(sender_address, admin_address)
+    );
+
+    int shares = in_msg_body~load_coins();
+    slice user_address = in_msg_body~load_msg_addr();
+    slice response_address = in_msg_body~load_msg_addr();
+
+    int remain_msg_value = msg_value 
+        - storage_fee
+        - STRATEGY::ADMIN_ADD_USER_SHARE_FEE
+        - fwd_fee;
+
+    ;; then send deposit msg to user_strategy_info
+    var deposit_msg_body = begin_cell()
+        .store_uint(STAKE::OP::DEPOSIT, 32)
+        .store_uint(query_id, 64)
+        .store_coins(shares)
+        .store_slice(response_address)
+        .end_cell();
+    
+    cell state_init = calculate_user_strategy_info_state_init(
+        user_address,
+        my_address(),
+        user_strategy_info_code
+    );
+    slice user_strategy_info_address = calculate_user_strategy_info_address_by_state_init(state_init);
+    var msg = begin_cell()
+        .store_uint(0x18, 6)
+        .store_slice(user_strategy_info_address)
+        .store_coins(remain_msg_value)
+        .store_uint(4 + 2 + 1, 1 + 4 + 4 + 64 + 32 + 1 + 1 + 1)
+        .store_ref(state_init)
+        .store_ref(deposit_msg_body);
+    send_raw_message(msg.end_cell(), 1);
+
+}
+
 () recv_internal(int balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
@@ -805,6 +971,16 @@ global cell withdraw_code;
         return ();
     }
 
+    if (op == STAKE::OP::CLAIM_OPT_SHARE) {
+        claim_operator_share(query_id,in_msg_body,sender_address,balance,fwd_fee,msg_value);
+        return ();
+    }
+
+    if (op == STAKE::OP::CLAIM_OPT_SHARE_ACK) {
+        claim_operator_share_ack(query_id,in_msg_body,sender_address,balance,fwd_fee,msg_value);
+        return ();
+    }
+
     ;; admin operation
     if (op == STRATEGY::OP::ADMIN_UPDATE_OPERATOR_SHARE) {
         admin_update_operator_share(query_id, in_msg_body, sender_address, balance, fwd_fee, msg_value);
@@ -855,6 +1031,11 @@ global cell withdraw_code;
         throw_unless(STAKE::ERR::UNAUTHORIZED, equal_slices(sender_address, admin_address));
         utonic_manager_address = in_msg_body~load_msg_addr();
         save_global_data();
+        return ();
+    }
+
+    if (op == STRATEGY::OP::ADMIN_ADD_USER_SHARE) {
+        admin_add_user_share(query_id,in_msg_body,sender_address,balance,fwd_fee,msg_value);
         return ();
     }
 
