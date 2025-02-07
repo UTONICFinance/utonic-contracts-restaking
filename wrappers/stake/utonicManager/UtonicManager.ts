@@ -1,5 +1,5 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, Slice, TupleItemSlice, TupleItemInt, Dictionary } from "@ton/core";
-import { UTONIC_MANAGER_OP_REGISTER, UTONIC_MANAGER_OP_SWITCH_OPERATOR_STATUS } from "./utonicManagerOp";
+import { UTONIC_MANAGER_OP_ADMIN_CLAIM_OPT_SHARE, UTONIC_MANAGER_OP_ADMIN_SWITCH_OPERATOR_STATUS, UTONIC_MANAGER_OP_REGISTER } from "./utonicManagerOp";
 import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE } from "../stakeOp";
 
 export default class UTonicManager implements Contract {
@@ -48,9 +48,9 @@ export default class UTonicManager implements Contract {
     });
   }
 
-  async sendSwitchOperatorStatus(provider: ContractProvider, via: Sender, queryId: number, isBaned: boolean, operatorRegisterAddress: Address, responseAddress: Address, value: string) {
+  async sendAdminSwitchOperatorStatus(provider: ContractProvider, via: Sender, queryId: number, isBaned: boolean, operatorRegisterAddress: Address, responseAddress: Address, value: string) {
     const messageBody = beginCell()
-      .storeUint(UTONIC_MANAGER_OP_SWITCH_OPERATOR_STATUS, 32) // op 
+      .storeUint(UTONIC_MANAGER_OP_ADMIN_SWITCH_OPERATOR_STATUS, 32) // op 
       .storeUint(queryId, 64) // query id
       .storeUint(isBaned? 1 : 0, 1)
       .storeAddress(operatorRegisterAddress)
@@ -62,11 +62,13 @@ export default class UTonicManager implements Contract {
     });
   }
 
-  async sendUpdateCode(provider: ContractProvider, via: Sender, queryId: number, code: Cell, value: string) {
+  async sendAdminClaimOperatorShare(provider: ContractProvider, via: Sender, queryId: number, operatorAddress: Address, strategyAddress: Address, recipientAddress: Address, value: string) {
     const messageBody = beginCell()
-      .storeUint(STAKE_OP_ADMIN_UPDATE_CODE, 32) // op 
+      .storeUint(UTONIC_MANAGER_OP_ADMIN_CLAIM_OPT_SHARE, 32) // op 
       .storeUint(queryId, 64) // query id
-      .storeRef(code)
+      .storeAddress(operatorAddress)
+      .storeAddress(strategyAddress)
+      .storeAddress(recipientAddress)
       .endCell();
     await provider.internal(via, {
       value,
