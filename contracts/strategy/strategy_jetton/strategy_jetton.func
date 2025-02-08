@@ -516,6 +516,7 @@ global cell withdraw_code;
             + fwd_fee
             + STRATEGY::UPDATE_OPERATOR_ACK_FEE
             + fwd_fee
+            + fwd_fee
             + USER_STRATEGY_INFO::DELEGATE_OR_UNDELEGATE_ACK_FEE
     );
     load_global_data();
@@ -700,6 +701,7 @@ global cell withdraw_code;
         msg_value > storage_fee
             + STRATEGY::UPDATE_OPERATOR_ACK_FEE
             + fwd_fee
+            + fwd_fee
             + USER_STRATEGY_INFO::DELEGATE_OR_UNDELEGATE_ACK_FEE
     );
     load_global_data();
@@ -752,7 +754,7 @@ global cell withdraw_code;
     ;; emit event
     int is_delegate = (origin_opcode == STAKE::OP::DELEGATE) ? 1 : 0;
     emit_delegate_undelegate_log(user_address,is_delegate,my_address(),operator_address);
-    
+
 }
 
 () admin_update_operator_share(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {

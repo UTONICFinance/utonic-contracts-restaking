@@ -74,7 +74,8 @@ int delegate_cycle_fee(int fwd_fee) {
         + STRATEGY::QUERY_OPERATOR_ACK_FEE
         + update_operator_share_cycle_fee(fwd_fee)
         + fwd_fee * 2
-        + STRATEGY::UPDATE_OPERATOR_ACK_FEE;
+        + STRATEGY::UPDATE_OPERATOR_ACK_FEE
+        + fwd_fee;
     return fee;
 }
 
@@ -85,7 +86,8 @@ int undelegate_cycle_fee(int fwd_fee) {
         + STRATEGY::QUERY_OPERATOR_ACK_FEE
         + update_operator_share_cycle_fee(fwd_fee)
         + fwd_fee * 2
-        + STRATEGY::UPDATE_OPERATOR_ACK_FEE;
+        + STRATEGY::UPDATE_OPERATOR_ACK_FEE
+        + fwd_fee;
     return fee;
 }
 
