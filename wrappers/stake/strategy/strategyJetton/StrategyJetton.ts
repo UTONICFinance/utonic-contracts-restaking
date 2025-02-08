@@ -1,5 +1,5 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, Slice, TupleItemSlice, TupleItemInt, Dictionary } from "@ton/core";
-import { STRATEGY_OP_ADMIN_CANCEL_USER_PENDING, STRATEGY_OP_ADMIN_DELEGATE_ACK, STRATEGY_OP_ADMIN_EXTRACT_TOKEN, STRATEGY_OP_ADMIN_UNDELEGATE_ACK, STRATEGY_OP_ADMIN_UPDATE_CAPACITY, STRATEGY_OP_ADMIN_UPDATE_OPERATOR_SHARE, STRATEGY_OP_ADMIN_UPDATE_TOKEN_RECEIVER, STRATEGY_OP_ADMIN_UPDATE_UTONIC_MANAGER, STRATEGY_OP_ADMIN_UPDATE_WITHDRAW_PENDING_TIME, STRATEGY_OP_INIT_USER_INFO } from "../strategyOp";
+import { STRATEGY_OP_ADMIN_ADD_USER_SHARE, STRATEGY_OP_ADMIN_CANCEL_USER_PENDING, STRATEGY_OP_ADMIN_DELEGATE_ACK, STRATEGY_OP_ADMIN_EXTRACT_TOKEN, STRATEGY_OP_ADMIN_UNDELEGATE_ACK, STRATEGY_OP_ADMIN_UPDATE_CAPACITY, STRATEGY_OP_ADMIN_UPDATE_OPERATOR_SHARE, STRATEGY_OP_ADMIN_UPDATE_TOKEN_RECEIVER, STRATEGY_OP_ADMIN_UPDATE_UTONIC_MANAGER, STRATEGY_OP_ADMIN_UPDATE_WITHDRAW_PENDING_TIME, STRATEGY_OP_INIT_USER_INFO } from "../strategyOp";
 import { STRATEGY_JETTON_OP_ADMIN_UPDATE_STRATEGY_JETTON_WALLET } from "./StrategyJettonOp";
 import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE } from "../../stakeOp";
 
@@ -242,6 +242,20 @@ export default class StrategyJetton implements Contract {
     });
   }
   
+  async sendAdminAddUserShare(provider: ContractProvider, via: Sender, queryId: number, share: bigint, userAddress: Address, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STRATEGY_OP_ADMIN_ADD_USER_SHARE, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(share)
+      .storeAddress(userAddress)
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
   async getStrategyData(provider: ContractProvider) {
     const { stack } = await provider.get("get_strategy_data", []);
     
