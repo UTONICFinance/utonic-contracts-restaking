@@ -15,6 +15,7 @@
 #include "../strategy_params.func";
 #include "../strategy_op.func";
 #include "../strategy_errors.func";
+#include "../strategy_events.func";
 
 #include "strategy_jetton_params.func";
 #include "strategy_jetton_op.func";
@@ -480,7 +481,7 @@ global cell withdraw_code;
     cell out_extra_payload_cell = begin_cell()
         .store_uint(opcode, 32)
         .store_coins(shares)
-        .store_slice(sender_address)
+        .store_slice(user_address)
         .end_cell();
 
     ;; then send query msg to utonic_manager
@@ -534,7 +535,7 @@ global cell withdraw_code;
     slice in_extra_payload = in_msg_body~load_ref().begin_parse();
     int origin_opcode = in_extra_payload~load_uint(32);
     int shares = in_extra_payload~load_coins();
-    slice user_strategy_info = in_extra_payload~load_msg_addr();
+    slice user_address = in_extra_payload~load_msg_addr();
     int remain_msg_value = msg_value
         - storage_fee
         - STRATEGY::QUERY_OPERATOR_ACK_FEE 
@@ -542,7 +543,7 @@ global cell withdraw_code;
     if (operator_status == OPERATOR_REGISTER::STATUS_NORMAL) {
         cell out_extra_payload = begin_cell()
             .store_uint(origin_opcode, 32)
-            .store_slice(user_strategy_info)
+            .store_slice(user_address)
             .end_cell();
         
         _update_operator_share_with_state_init(
@@ -563,7 +564,11 @@ global cell withdraw_code;
             .store_uint(query_id, 64)
             .store_slice(response_address)
             .end_cell();
-        
+        slice user_strategy_info = calculate_user_strategy_info_address(
+            user_address,
+            my_address(),
+            user_strategy_info_code
+        );
         var msg = begin_cell()
             .store_uint(0x18, 6)
             .store_slice(user_strategy_info)
@@ -715,7 +720,12 @@ global cell withdraw_code;
     
     slice in_extra_payload = in_msg_body~load_ref().begin_parse();
     int origin_opcode = in_extra_payload~load_uint(32);
-    slice user_strategy_info = in_extra_payload~load_msg_addr();
+    slice user_address = in_extra_payload~load_msg_addr();
+    slice user_strategy_info = calculate_user_strategy_info_address(
+        user_address,
+        my_address(),
+        user_strategy_info_code
+    );
     int remain_msg_value = msg_value
         - storage_fee
         - STRATEGY::UPDATE_OPERATOR_ACK_FEE 
@@ -738,6 +748,11 @@ global cell withdraw_code;
         .store_uint(1, 1 + 4 + 4 + 64 + 32 + 1 + 1)
         .store_ref(ack_msg_body);
     send_raw_message(msg.end_cell(), 1);
+    
+    ;; emit event
+    int is_delegate = (origin_opcode == STAKE::OP::DELEGATE) ? 1 : 0;
+    emit_delegate_undelegate_log(user_address,is_delegate,my_address(),operator_address);
+    
 }
 
 () admin_update_operator_share(int query_id, slice in_msg_body, slice sender_address, int my_ton_balance, int fwd_fee, int msg_value) impure {
