@@ -45,8 +45,7 @@ global slice utonic_manager_address;
     );
 
     load_global_data();
-    ;; prevent attack from operator's re-registering
-    throw_unless(STAKE::ERR::INVALID_STATUS, status == OPERATOR_REGISTER::STATUS_NOT_INITED);
+    
     throw_unless(
         STAKE::ERR::WRONG_CALLER, 
         equal_slices(
@@ -54,6 +53,8 @@ global slice utonic_manager_address;
             utonic_manager_address
         )
     );
+    ;; prevent attack from operator's re-registering
+    throw_unless(STAKE::ERR::INVALID_STATUS, status == OPERATOR_REGISTER::STATUS_NOT_INITED);
 
     status = OPERATOR_REGISTER::STATUS_NORMAL;
     save_global_data();
