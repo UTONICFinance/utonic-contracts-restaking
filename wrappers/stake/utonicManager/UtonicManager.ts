@@ -1,6 +1,6 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, Slice, TupleItemSlice, TupleItemInt, Dictionary } from "@ton/core";
 import { UTONIC_MANAGER_OP_ADMIN_CLAIM_OPT_SHARE, UTONIC_MANAGER_OP_ADMIN_SWITCH_OPERATOR_STATUS, UTONIC_MANAGER_OP_REGISTER } from "./utonicManagerOp";
-import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE } from "../stakeOp";
+import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE, STAKE_OP_QUERY_ACK } from "../stakeOp";
 
 export default class UTonicManager implements Contract {
 
@@ -41,6 +41,19 @@ export default class UTonicManager implements Contract {
       .storeUint(UTONIC_MANAGER_OP_REGISTER, 32) // op 
       .storeUint(queryId, 64) // query id
       .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendQueryAck(provider: ContractProvider, via: Sender, queryId: number, operatorStatus: number, operatorAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_QUERY_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeUint(operatorStatus, 2)
+      .storeAddress(operatorAddress)
       .endCell();
     await provider.internal(via, {
       value,

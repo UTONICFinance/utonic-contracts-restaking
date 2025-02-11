@@ -1,7 +1,7 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, Slice, TupleItemSlice, TupleItemInt, Dictionary } from "@ton/core";
 import { STRATEGY_OP_ADMIN_ADD_USER_SHARE, STRATEGY_OP_ADMIN_CANCEL_USER_PENDING, STRATEGY_OP_ADMIN_DELEGATE_ACK, STRATEGY_OP_ADMIN_EXTRACT_TOKEN, STRATEGY_OP_ADMIN_UNDELEGATE_ACK, STRATEGY_OP_ADMIN_UPDATE_CAPACITY, STRATEGY_OP_ADMIN_UPDATE_OPERATOR_SHARE, STRATEGY_OP_ADMIN_UPDATE_TOKEN_RECEIVER, STRATEGY_OP_ADMIN_UPDATE_UTONIC_MANAGER, STRATEGY_OP_ADMIN_UPDATE_WITHDRAW_PENDING_TIME, STRATEGY_OP_INIT_USER_INFO } from "../strategyOp";
 import { STRATEGY_JETTON_OP_ADMIN_UPDATE_STRATEGY_JETTON_WALLET } from "./StrategyJettonOp";
-import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE } from "../../stakeOp";
+import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE, STAKE_OP_BURN, STAKE_OP_CLAIM_OPT_SHARE, STAKE_OP_CLAIM_OPT_SHARE_ACK, STAKE_OP_DELEGATE, STAKE_OP_DEPOSIT_ACK, STAKE_OP_QUERY_ACK, STAKE_OP_UNDELEGATE, STAKE_OP_UPDATE_OPT_SHARE_ACK, STAKE_OP_WITHDRAW } from "../../stakeOp";
 
 export default class StrategyJetton implements Contract {
 
@@ -74,6 +74,148 @@ export default class StrategyJetton implements Contract {
       .storeUint(STRATEGY_OP_INIT_USER_INFO, 32) // op 
       .storeUint(queryId, 64) // query id
       .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendDepositAck(provider: ContractProvider, via: Sender, queryId: number, shares: bigint, userAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_DEPOSIT_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(shares)
+      .storeAddress(userAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+  
+  async sendBurn(provider: ContractProvider, via: Sender, queryId: number, shares: bigint, withdrawId: number, userAddress: Address, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_BURN, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(shares)
+      .storeUint(withdrawId, 64)
+      .storeRef(
+        beginCell()
+            .storeAddress(userAddress)
+            .storeAddress(responseAddress)
+        .endCell())
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendWithdraw(provider: ContractProvider, via: Sender, queryId: number, shares: bigint, withdrawId: number, userAddress: Address, recipientAddress: Address, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_WITHDRAW, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(shares)
+      .storeUint(withdrawId, 64)
+      .storeAddress(userAddress)
+      .storeRef(
+        beginCell()
+            .storeAddress(recipientAddress)
+            .storeAddress(responseAddress)
+        .endCell())
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendDelegate(provider: ContractProvider, via: Sender, queryId: number, shares: bigint, userAddress: Address, operatorAddress: Address, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_DELEGATE, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(shares)
+      .storeAddress(userAddress)
+      .storeRef(
+        beginCell()
+            .storeAddress(operatorAddress)
+            .storeAddress(responseAddress)
+        .endCell())
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendUndelegate(provider: ContractProvider, via: Sender, queryId: number, shares: bigint, userAddress: Address, operatorAddress: Address, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_UNDELEGATE, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(shares)
+      .storeAddress(userAddress)
+      .storeRef(
+        beginCell()
+            .storeAddress(operatorAddress)
+            .storeAddress(responseAddress)
+        .endCell())
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendQueryAck(provider: ContractProvider, via: Sender, queryId: number, operatorStatus: number, operatorAddress: Address, responseAddress: Address, inExtraPayload: Cell, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_QUERY_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeUint(operatorStatus, 2)
+      .storeAddress(operatorAddress)
+      .storeAddress(responseAddress)
+      .storeRef(inExtraPayload)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendUpdateOptShareAck(provider: ContractProvider, via: Sender, queryId: number, operatorAddress: Address, responseAddress: Address, inExtraPayload: Cell, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_UPDATE_OPT_SHARE_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeAddress(operatorAddress)
+      .storeAddress(responseAddress)
+      .storeRef(inExtraPayload)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendClaimOptShare(provider: ContractProvider, via: Sender, queryId: number, operatorAddress: Address, recipientAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_CLAIM_OPT_SHARE, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeAddress(operatorAddress)
+      .storeAddress(recipientAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendClaimOptShareAck(provider: ContractProvider, via: Sender, queryId: number, shares: bigint, operatorAddress: Address, recipientAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_CLAIM_OPT_SHARE_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(shares)
+      .storeAddress(operatorAddress)
+      .storeAddress(recipientAddress)
       .endCell();
     await provider.internal(via, {
       value,

@@ -1,6 +1,6 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, Slice, TupleItemSlice, TupleItemInt, Dictionary } from "@ton/core";
 import { STRATEGY_OP_ADMIN_UPDATE_WITHDRAW_PENDING_TIME, STRATEGY_OP_INIT_USER_INFO } from "../strategyOp";
-import { STAKE_OP_BURN, STAKE_OP_DELEGATE, STAKE_OP_UNDELEGATE } from "../../stakeOp";
+import { STAKE_OP_BURN, STAKE_OP_CANCEL_PENDING, STAKE_OP_DELEGATE, STAKE_OP_DELEGATE_ACK, STAKE_OP_DEPOSIT, STAKE_OP_UNDELEGATE, STAKE_OP_UNDELEGATE_ACK } from "../../stakeOp";
 
 export default class UserStrategyInfo implements Contract {
 
@@ -40,6 +40,55 @@ export default class UserStrategyInfo implements Contract {
     const messageBody = beginCell()
       .storeUint(STAKE_OP_UNDELEGATE, 32) // op 
       .storeUint(queryId, 64) // query id
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendCancelPending(provider: ContractProvider, via: Sender, queryId: number, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_CANCEL_PENDING, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendDelegateAck(provider: ContractProvider, via: Sender, queryId: number, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_DELEGATE_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendUndelegateAck(provider: ContractProvider, via: Sender, queryId: number, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_UNDELEGATE_ACK, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeAddress(responseAddress)
+      .endCell();
+    await provider.internal(via, {
+      value,
+      body: messageBody
+    });
+  }
+
+  async sendDeposit(provider: ContractProvider, via: Sender, queryId: number, depositShares: bigint, responseAddress: Address, value: string) {
+    const messageBody = beginCell()
+      .storeUint(STAKE_OP_DEPOSIT, 32) // op 
+      .storeUint(queryId, 64) // query id
+      .storeCoins(depositShares)
       .storeAddress(responseAddress)
       .endCell();
     await provider.internal(via, {
