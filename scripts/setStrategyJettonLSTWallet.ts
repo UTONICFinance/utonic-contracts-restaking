@@ -30,7 +30,9 @@ export async function run() {
   const strategyLST = new StrategyJetton(strategyLSTAddress);
   const strategyLSTContract = client.open(strategyLST);
 
-  const lstMinterAddress = Address.parse(config.lst_ton_minter);
+  const lsttonJetton = config.lstton_jetton;
+
+  const lstMinterAddress = Address.parse(config[lsttonJetton]);
   const lstMinter = new TestMinter(lstMinterAddress);
   const lstMinterContract = client.open(lstMinter);
   const lstWalletAddress = await lstMinterContract.getWalletAddress(strategyLSTAddress);
