@@ -28,7 +28,6 @@ global int capacity;
 global int total_shares;
 global int debt_token;
 global slice utonic_manager_address;
-global slice jetton_receiver_address;
 global slice strategy_jetton_wallet;
 global slice admin_address;
 global slice pending_admin_address;
@@ -44,7 +43,6 @@ global cell withdraw_code;
         total_shares,
         debt_token,
         utonic_manager_address,
-        jetton_receiver_address,
         strategy_jetton_wallet,
         admin_address,
         pending_admin_address,
@@ -62,7 +60,6 @@ global cell withdraw_code;
         total_shares,
         debt_token,
         utonic_manager_address,
-        jetton_receiver_address,
         strategy_jetton_wallet,
         admin_address,
         pending_admin_address,
@@ -178,7 +175,6 @@ global cell withdraw_code;
             + fwd_fee
             + deposit_ack_route_fee(fwd_fee)
     );
-    _send_jetton(query_id, jetton_amount, jetton_receiver_address, response_address, false);
 
     int remain_msg_value = msg_value 
         - STRATEGY_JETTON::TRANSFER_NOTIFICATION_FEE 
@@ -1062,18 +1058,11 @@ global cell withdraw_code;
         return ();
     }
 
-    if (op == STRATEGY::OP::ADMIN_UPDATE_TOKEN_RECEIVER) {
-        load_global_data();
-        throw_unless(STAKE::ERR::UNAUTHORIZED, equal_slices(sender_address, admin_address));        
-        jetton_receiver_address = in_msg_body~load_msg_addr();
-        save_global_data();
-        return ();
-    }
-
     if (op == STRATEGY::OP::ADMIN_EXTRACT_TOKEN) {
         load_global_data();
         throw_unless(STAKE::ERR::UNAUTHORIZED, equal_slices(sender_address, admin_address));        
         int amount = in_msg_body~load_coins();
+        slice jetton_receiver_address = in_msg_body~load_msg_addr();
         slice response_address = in_msg_body~load_msg_addr();
         _send_jetton(query_id,amount,jetton_receiver_address,response_address,true);
         return ();
@@ -1127,7 +1116,7 @@ global cell withdraw_code;
     throw(0xffff);
 }
 
-(int, int, int, int, int, slice, slice, slice, slice, slice, cell, cell, cell) get_strategy_data() method_id {
+(int, int, int, int, int, slice, slice, slice, slice, cell, cell, cell) get_strategy_data() method_id {
     load_global_data();
     return (
         strategy_id,
@@ -1136,7 +1125,6 @@ global cell withdraw_code;
         total_shares,
         debt_token,
         utonic_manager_address,
-        jetton_receiver_address,
         strategy_jetton_wallet,
         admin_address,
         pending_admin_address,

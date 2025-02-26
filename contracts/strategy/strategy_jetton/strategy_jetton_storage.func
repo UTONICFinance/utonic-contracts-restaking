@@ -6,7 +6,6 @@ cell pack_strategy_jetton_data (
     int lc_total_shares,
     int lc_debt_token,
     slice lc_utonic_manager_address,
-    slice lc_jetton_receiver_address,
     slice lc_strategy_jetton_wallet,
     slice lc_admin_address,
     slice lc_pending_admin_address,
@@ -23,8 +22,6 @@ cell pack_strategy_jetton_data (
         .end_cell();
     
     cell admin_data_extra_cell = begin_cell()
-        ;; move lc_debt_token to admin_data_cell
-        ;; data_cell may be too crowd
         .store_coins(lc_debt_token)
         .store_slice(lc_admin_address)
         .store_slice(lc_pending_admin_address)
@@ -32,7 +29,6 @@ cell pack_strategy_jetton_data (
     
     cell admin_data_cell = begin_cell()
         .store_slice(lc_utonic_manager_address)
-        .store_slice(lc_jetton_receiver_address)
         .store_slice(lc_strategy_jetton_wallet)
         .store_ref(admin_data_extra_cell)
         .end_cell();
@@ -50,7 +46,7 @@ cell pack_strategy_jetton_data (
         .end_cell();
 }
 
-(int, int, int, int, int, slice, slice, slice, slice, slice, cell, cell, cell) load_data() inline {
+(int, int, int, int, int, slice, slice, slice, slice, cell, cell, cell) load_data() inline {
     slice ds = get_data().begin_parse();
 
     slice data_cell = ds~load_ref().begin_parse();
@@ -61,7 +57,6 @@ cell pack_strategy_jetton_data (
 
     slice admin_data_cell = ds~load_ref().begin_parse();
     slice lc_utonic_manager_address = admin_data_cell~load_msg_addr();
-    slice lc_jetton_receiver_address = admin_data_cell~load_msg_addr();
     slice lc_strategy_jetton_wallet = admin_data_cell~load_msg_addr();
 
     slice admin_data_extra_cell = admin_data_cell~load_ref().begin_parse();
@@ -81,7 +76,6 @@ cell pack_strategy_jetton_data (
         lc_total_shares,
         lc_debt_token,
         lc_utonic_manager_address,
-        lc_jetton_receiver_address,
         lc_strategy_jetton_wallet,
         lc_admin_address,
         lc_pending_admin_address,
@@ -98,7 +92,6 @@ cell pack_strategy_jetton_data (
     int lc_total_shares,
     int lc_debt_token,
     slice lc_utonic_manager_address,
-    slice lc_jetton_receiver_address,
     slice lc_strategy_jetton_wallet,
     slice lc_admin_address,
     slice lc_pending_admin_address,
@@ -114,7 +107,6 @@ cell pack_strategy_jetton_data (
             lc_total_shares,
             lc_debt_token,
             lc_utonic_manager_address,
-            lc_jetton_receiver_address,
             lc_strategy_jetton_wallet,
             lc_admin_address,
             lc_pending_admin_address,
