@@ -4,7 +4,7 @@
 
 install ton-keeper on your desktop (or phone), we need `Sign in with tonkeeper` when we deploy contracts.
 
-### 2. clone and build
+### 2. clone, build and test
 
 node: 18
 
@@ -34,6 +34,19 @@ $ yarn compile-operator-register
 $ yarn compile-utonic-manager
 ```
 
+test:
+before test we should complete `"build"`.
+
+```
+$ yarn jest
+```
+
+to test a single test case file like `stakeTon.spec.ts`
+
+```
+$ yarn jest tests/stakeTon.spec.ts
+```
+
 ### 3. config file
 
 create a file named `config.ini` and write following content:
@@ -60,7 +73,6 @@ withdraw_pending_time=${pending time in seconds}
 ;; init ton-balance of strategy-ton
 strategy_ton_value=0.1
 
-strategy_lstton_receiver=UQCR3siASIbWlXKoUnMs5GoRSXkez084WrkRcDs8GKlMX7ul
 
 ;; arbitrary number
 strategy_lstton_id=2

@@ -25,7 +25,6 @@ export async function run() {
   const operatorStrategyShareCode = Cell.fromBoc(fs.readFileSync("build/operator_strategy_share.cell"))[0];
   const utonicManagerAddress = Address.parse(config.utonic_manager);
   const adminAddress = Address.parse(config.strategy_admin_address);
-  const jettonReceiverAddress = Address.parse(config.strategy_lstton_receiver);
   
   const strategyJetton = StrategyJetton.createForDeploy(
     strategyJettonCode,
@@ -34,7 +33,6 @@ export async function run() {
       Number(config.withdraw_pending_time),
       BigInt(Number(config.strategy_lstton_capacity)*1e9),
       utonicManagerAddress,
-      jettonReceiverAddress,
       adminAddress,
       userStrategyInfoCode,
       operatorStrategyShareCode,

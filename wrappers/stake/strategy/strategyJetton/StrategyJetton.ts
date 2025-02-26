@@ -10,7 +10,6 @@ export default class StrategyJetton implements Contract {
     withdrawPendingTime: number,
     capacity: bigint,
     utonicManagerAddress: Address,
-    jettonReceiverAddress: Address,
     adminAddress: Address,
     userStrategyInfoCode: Cell,
     operatorStrategyShareCode: Cell,
@@ -32,7 +31,6 @@ export default class StrategyJetton implements Contract {
         .endCell();
     const adminDataCell = beginCell()
         .storeAddress(utonicManagerAddress)
-        .storeAddress(jettonReceiverAddress)
         .storeUint(0, 2)
         .storeRef(adminDataExtraCell)
         .endCell();
@@ -235,11 +233,12 @@ export default class StrategyJetton implements Contract {
     });
   }
 
-  async sendAdminExtractToken(provider: ContractProvider, via: Sender, queryId: number, amount: bigint, responseAddress: Address, value: string) {
+  async sendAdminExtractToken(provider: ContractProvider, via: Sender, queryId: number, amount: bigint, receiverAddress: Address, responseAddress: Address, value: string) {
     const messageBody = beginCell()
       .storeUint(STRATEGY_OP_ADMIN_EXTRACT_TOKEN, 32) // op 
       .storeUint(queryId, 64) // query id
       .storeCoins(amount)
+      .storeAddress(receiverAddress)
       .storeAddress(responseAddress)
       .endCell();
     await provider.internal(via, {
@@ -407,7 +406,6 @@ export default class StrategyJetton implements Contract {
     const totalShares = stack.readBigNumber();
     const debtToken = stack.readBigNumber();
     const utonicManagerAddress = stack.readAddress();
-    const jettonReceiverAddress = stack.readAddress();
     const strategyJettonWallet = stack.readAddressOpt();
     const adminAddress = stack.readAddress();
     const pendingAdminAddress = stack.readAddress();
@@ -418,7 +416,6 @@ export default class StrategyJetton implements Contract {
         totalShares,
         debtToken,
         utonicManagerAddress,
-        jettonReceiverAddress,
         strategyJettonWallet,
         adminAddress,
         pendingAdminAddress,
