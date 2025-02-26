@@ -32,6 +32,9 @@ $ yarn compile-user-strategy-info
 $ yarn compile-strategy-withdraw
 $ yarn compile-operator-register
 $ yarn compile-utonic-manager
+$ yarn compile-test-jetton-minter        # for test
+$ yarn compile-test-jetton-wallet        # for test
+$ yarn compile-stake-test-update-code    # for test
 ```
 
 test:
