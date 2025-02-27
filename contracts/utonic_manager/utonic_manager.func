@@ -345,6 +345,15 @@ global cell operator_register_code;
     emit_operator_register_log(operator_address, operator_register_address, now());
 }
 
+() _send_ton(slice receiver_address, int amount) impure {
+    var msg_send_ton = begin_cell()
+        .store_uint(0x10, 6)
+        .store_slice(receiver_address)
+        .store_coins(amount)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1);
+    send_raw_message(msg_send_ton.end_cell(), 2 + 1);
+}
+
 () recv_internal(int balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
@@ -406,6 +415,15 @@ global cell operator_register_code;
         throw_unless(STAKE::ERR::WRONG_CALLER, equal_slices(sender_address, pending_admin_address));
         admin_address = pending_admin_address;
         save_global_data();
+        return ();
+    }
+
+    if (op == STAKE::OP::ADMIN_EXTRACT_TON) {
+        load_global_data();
+        throw_unless(STAKE::ERR::UNAUTHORIZED, equal_slices(sender_address, admin_address));        
+        int amount = in_msg_body~load_coins();
+        slice receiver_address = in_msg_body~load_msg_addr();
+        _send_ton(receiver_address, amount);
         return ();
     }
 

@@ -1,6 +1,6 @@
 import { Contract, ContractProvider, Sender, Address, Cell, contractAddress, beginCell, Slice, TupleItemSlice, TupleItemInt, Dictionary } from "@ton/core";
 import { STRATEGY_OP_ADMIN_ADD_USER_SHARE, STRATEGY_OP_ADMIN_CANCEL_USER_PENDING, STRATEGY_OP_ADMIN_DELEGATE_ACK, STRATEGY_OP_ADMIN_EXTRACT_TOKEN, STRATEGY_OP_ADMIN_EXTRACT_TON, STRATEGY_OP_ADMIN_UNDELEGATE_ACK, STRATEGY_OP_ADMIN_UPDATE_OPERATOR_SHARE, STRATEGY_OP_ADMIN_UPDATE_TOKEN_RECEIVER, STRATEGY_OP_ADMIN_UPDATE_UTONIC_MANAGER, STRATEGY_OP_ADMIN_UPDATE_WITHDRAW_PENDING_TIME, STRATEGY_OP_INIT_USER_INFO } from "../strategyOp";
-import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE, STAKE_OP_BURN, STAKE_OP_CLAIM_OPT_SHARE, STAKE_OP_CLAIM_OPT_SHARE_ACK, STAKE_OP_DELEGATE, STAKE_OP_DEPOSIT, STAKE_OP_DEPOSIT_ACK, STAKE_OP_QUERY_ACK, STAKE_OP_UNDELEGATE, STAKE_OP_UPDATE_OPT_SHARE_ACK, STAKE_OP_WITHDRAW } from "../../stakeOp";
+import { STAKE_OP_ADMIN_ACCEPT_ADMIN, STAKE_OP_ADMIN_EXTRACT_TON, STAKE_OP_ADMIN_UPDATE_ADMIN, STAKE_OP_ADMIN_UPDATE_CODE, STAKE_OP_BURN, STAKE_OP_CLAIM_OPT_SHARE, STAKE_OP_CLAIM_OPT_SHARE_ACK, STAKE_OP_DELEGATE, STAKE_OP_DEPOSIT, STAKE_OP_DEPOSIT_ACK, STAKE_OP_QUERY_ACK, STAKE_OP_UNDELEGATE, STAKE_OP_UPDATE_OPT_SHARE_ACK, STAKE_OP_WITHDRAW } from "../../stakeOp";
 
 export default class StrategyTon implements Contract {
 
@@ -232,12 +232,12 @@ export default class StrategyTon implements Contract {
     });
   }
 
-  async sendAdminExtractToken(provider: ContractProvider, via: Sender, queryId: number, amount: bigint, responseAddress: Address, value: string) {
+  async sendAdminExtractTon(provider: ContractProvider, via: Sender, queryId: number, amount: bigint, recipient: Address, value: string) {
     const messageBody = beginCell()
-      .storeUint(STRATEGY_OP_ADMIN_EXTRACT_TON, 32) // op 
+      .storeUint(STAKE_OP_ADMIN_EXTRACT_TON, 32) // op 
       .storeUint(queryId, 64) // query id
       .storeCoins(amount)
-      .storeAddress(responseAddress)
+      .storeAddress(recipient)
       .endCell();
     await provider.internal(via, {
       value,

@@ -15,7 +15,7 @@ import OperatorStrategyShare from "../wrappers/stake/strategy/operatorStrategySh
 import { exitCode } from "process";
 import { STAKE_ERR_INSUFFICIENT_BALANCE, STAKE_ERR_INSUFFICIENT_SHARES, STAKE_ERR_INSUFFICIENT_VALUE, STAKE_ERR_INVALID_STATUS, STAKE_ERR_UNAUTHORIZED, STAKE_ERR_WRONG_CALLER } from "../wrappers/stake/stakeErr";
 import { UTONIC_MANAGER_OP_ADMIN_SWITCH_OPERATOR_STATUS } from "../wrappers/stake/utonicManager/utonicManagerOp";
-import { STAKE_OP_BURN, STAKE_OP_WITHDRAW } from "../wrappers/stake/stakeOp";
+import { STAKE_OP_ADMIN_EXTRACT_TON, STAKE_OP_BURN, STAKE_OP_WITHDRAW } from "../wrappers/stake/stakeOp";
 import StrategyWithdraw from "../wrappers/stake/strategy/strategyWithdraw/StrategyWithdraw";
 import { WITHDRAW_ERR_FINISHED, WITHDRAW_ERR_TIME_NOT_EXPIRED } from "../wrappers/stake/strategy/strategyWithdraw/strategyWithdrawErr";
 import { STRATEGY_OP_ADMIN_EXTRACT_TOKEN, STRATEGY_OP_ADMIN_EXTRACT_TON } from "../wrappers/stake/strategy/strategyOp";
@@ -403,14 +403,14 @@ describe("ton stake tests", () => {
     await strategyTonContract.sendValue(user1.getSender(), "10.0");
 
     // non-admin want to extract
-    let userExtract1 = await strategyTonContract.sendAdminExtractToken(user1.getSender(), 1, BigInt(1e9), userResponse1.address, "0.1");
+    let userExtract1 = await strategyTonContract.sendAdminExtractTon(user1.getSender(), 1, BigInt(1e9), user1.address, "0.1");
     expect(userExtract1.transactions).toHaveTransaction({
         to: strategyTonContract.address,
-        op: STRATEGY_OP_ADMIN_EXTRACT_TON,
+        op: STAKE_OP_ADMIN_EXTRACT_TON,
         exitCode: STAKE_ERR_UNAUTHORIZED
     })
     // admin extract
-    let adminExtract = await strategyTonContract.sendAdminExtractToken(admin.getSender(), 1, BigInt(1e9), admin.address, "0.1");
+    let adminExtract = await strategyTonContract.sendAdminExtractTon(admin.getSender(), 1, BigInt(1e9), tonReceiver.address, "0.1");
     expect(adminExtract.transactions).toHaveTransaction({
         from: strategyTonContract.address,
         to: tonReceiver.address,

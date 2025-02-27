@@ -1076,7 +1076,7 @@ global cell withdraw_code;
         return ();
     }
 
-    if (op == STRATEGY::OP::ADMIN_EXTRACT_TON) {
+    if (op == STAKE::OP::ADMIN_EXTRACT_TON) {
         load_global_data();
         throw_unless(STAKE::ERR::UNAUTHORIZED, equal_slices(sender_address, admin_address));        
         int amount = in_msg_body~load_coins();
