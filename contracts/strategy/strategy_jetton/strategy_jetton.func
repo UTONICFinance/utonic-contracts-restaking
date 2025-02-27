@@ -69,6 +69,14 @@ global cell withdraw_code;
     );
 }
 
+() _send_ton(slice receiver_address, int amount) impure {
+    var msg_send_ton = begin_cell()
+        .store_uint(0x10, 6)
+        .store_slice(receiver_address)
+        .store_coins(amount)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1);
+    send_raw_message(msg_send_ton.end_cell(), 2 + 1);
+}
 
 () _send_jetton(int query_id, int amount, slice receiver_address, slice response_address, int send_all_fee) impure {
 
@@ -1065,6 +1073,15 @@ global cell withdraw_code;
         slice jetton_receiver_address = in_msg_body~load_msg_addr();
         slice response_address = in_msg_body~load_msg_addr();
         _send_jetton(query_id,amount,jetton_receiver_address,response_address,true);
+        return ();
+    }
+
+    if (op == STRATEGY::OP::ADMIN_EXTRACT_TON) {
+        load_global_data();
+        throw_unless(STAKE::ERR::UNAUTHORIZED, equal_slices(sender_address, admin_address));        
+        int amount = in_msg_body~load_coins();
+        slice ton_receiver_address = in_msg_body~load_msg_addr();
+        _send_ton(ton_receiver_address, amount);
         return ();
     }
 

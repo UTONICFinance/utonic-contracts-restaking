@@ -18,7 +18,7 @@ import { UTONIC_MANAGER_OP_ADMIN_SWITCH_OPERATOR_STATUS } from "../wrappers/stak
 import { STAKE_OP_BURN, STAKE_OP_WITHDRAW } from "../wrappers/stake/stakeOp";
 import StrategyWithdraw from "../wrappers/stake/strategy/strategyWithdraw/StrategyWithdraw";
 import { WITHDRAW_ERR_FINISHED, WITHDRAW_ERR_TIME_NOT_EXPIRED } from "../wrappers/stake/strategy/strategyWithdraw/strategyWithdrawErr";
-import { STRATEGY_OP_ADMIN_EXTRACT_TOKEN } from "../wrappers/stake/strategy/strategyOp";
+import { STRATEGY_OP_ADMIN_EXTRACT_TOKEN, STRATEGY_OP_ADMIN_EXTRACT_TON } from "../wrappers/stake/strategy/strategyOp";
 
 describe("ton stake tests", () => {
   let blockchain: MyBlockchain;
@@ -406,7 +406,7 @@ describe("ton stake tests", () => {
     let userExtract1 = await strategyTonContract.sendAdminExtractToken(user1.getSender(), 1, BigInt(1e9), userResponse1.address, "0.1");
     expect(userExtract1.transactions).toHaveTransaction({
         to: strategyTonContract.address,
-        op: STRATEGY_OP_ADMIN_EXTRACT_TOKEN,
+        op: STRATEGY_OP_ADMIN_EXTRACT_TON,
         exitCode: STAKE_ERR_UNAUTHORIZED
     })
     // admin extract
